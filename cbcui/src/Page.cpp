@@ -22,7 +22,7 @@
 
 Page *Page::m_currentPage = 0;
 
-Page::Page(QWidget *parent) : QWidget(parent), m_lastPage(this)
+Page::Page(QWidget *parent, bool nodim) : QWidget(parent), m_lastPage(this), m_nodim(nodim)
 {
   hide();
 }

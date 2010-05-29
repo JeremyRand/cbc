@@ -21,7 +21,7 @@
 #include "VisionSettings.h"
 #include "Keypad.h"
 
-VisionSettings::VisionSettings(QWidget *parent, Camera *camera, RawView *rview) : Page(parent), m_camera(camera), m_rawview(rview)
+VisionSettings::VisionSettings(QWidget *parent, Camera *camera, RawView *rview) : Page(parent, true), m_camera(camera), m_rawview(rview)
 {
     setupUi(this);
     m_ImageDisplay = new ImageDisplay();

@@ -20,7 +20,7 @@
 
 #include "VisionTracking.h"
 
-VisionTracking::VisionTracking(QWidget *parent, ColorTracker *colorTracker) : Page(parent), m_ColorTracker(colorTracker)
+VisionTracking::VisionTracking(QWidget *parent, ColorTracker *colorTracker) : Page(parent, true), m_ColorTracker(colorTracker)
 {
     setupUi(this);
 

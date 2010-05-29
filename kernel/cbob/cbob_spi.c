@@ -36,12 +36,7 @@
 
 static struct semaphore cbob_spi;
 
-unsigned long cbob_spi_last_message;
-static struct cbob_message *cbob_spi_current_message;
-static short cbob_spi_current_cboblength;
-DECLARE_COMPLETION(cbob_spi_message_completion);
-
-#define CBOB_TRANSACTION_DELAY 1500
+#define CBOB_TRANSACTION_DELAY 1600
 
 enum {
   CBOB_TRANSACTION_CHUMBYHEADER,
@@ -51,17 +46,15 @@ enum {
   CBOB_TRANSACTION_END
 };
 
-static int cbob_spi_current_transaction;
+static void cbob_spi_run_transactions(void);
 static int cbob_spi_do_transaction(void);
 
-static int cbob_spi_desync;
-static void cbob_spi_update_desync(short replycount, short incount);
-
-static void cbob_spi_init_timer(void);
-static void cbob_spi_shutdown_timer(void);
+static void cbob_spi_update_desync(void);
 
 #define TIMER IMX_TIM2_BASE
 #define TIMER_IRQ TIM2_INT
+static void cbob_spi_init_timer(void);
+static void cbob_spi_shutdown_timer(void);
 static irqreturn_t cbob_timer_interrupt(int irq, void *dev_id, struct pt_regs *regs);
 
 static void cbob_spi_init_spi(void);
@@ -75,42 +68,57 @@ void cbob_spi_init()
   sema_init(&cbob_spi, 1);
 }
 
+#define CBOB_SPI_BUFSIZE 128
+static volatile short cbob_spi_message_cmd;
+static short cbob_spi_message_outbuf[CBOB_SPI_BUFSIZE];
+static volatile short cbob_spi_message_outcount;
+static short cbob_spi_message_inbuf[CBOB_SPI_BUFSIZE];
+static volatile short cbob_spi_message_incount;
+static volatile short cbob_spi_message_replycount;
+
 int cbob_spi_message(short cmd, short *outbuf, short outcount, short *inbuf, short incount)
 {
-  struct cbob_message msg;
-  msg.cmd = cmd;
-  msg.outbuf = outbuf;
-  msg.outcount = outcount;
-  msg.inbuf = inbuf;
-  msg.incount = incount;
-  
-  return cbob_spi_sendmessage(&msg);
-}
-
-int cbob_spi_sendmessage(struct cbob_message *msg)
-{
+  short len;
   if(down_interruptible(&cbob_spi))
     return -EINTR;
   
-  cbob_spi_current_message = msg;
-  cbob_spi_current_transaction = 0;
+  cbob_spi_message_cmd = cmd;
+  cbob_spi_message_outcount = outcount;
+  if (cbob_spi_message_outcount > CBOB_SPI_BUFSIZE) {
+    printk(KERN_WARNING "Message overflowed outbuf!");
+    cbob_spi_message_outcount = CBOB_SPI_BUFSIZE;
+  }
+  memcpy(cbob_spi_message_outbuf, outbuf, cbob_spi_message_outcount * sizeof(short));
+  cbob_spi_message_incount = incount;
 
+  cbob_spi_run_transactions();
+  
+  len = incount < cbob_spi_message_replycount ? incount : cbob_spi_message_replycount;
+  memcpy(inbuf, cbob_spi_message_inbuf, len*sizeof(short));
+
+  up(&cbob_spi);
+  return 1;
+}
+
+static int cbob_spi_current_transaction;
+static unsigned long cbob_spi_last_message;
+DECLARE_COMPLETION(cbob_spi_message_completion);
+
+static void cbob_spi_run_transactions()
+{
+  cbob_spi_current_transaction = 0;
   // if enough time has passed since the last transaction
   if (time_after(jiffies, cbob_spi_last_message + usecs_to_jiffies(CBOB_TRANSACTION_DELAY)))
     cbob_spi_do_transaction(); // go ahead and do one now to save time
   
   IMX_TCTL(TIMER) |= TCTL_TEN; // enable timer
-  wait_for_completion(&cbob_spi_message_completion);
-  
+  wait_for_completion(&cbob_spi_message_completion);  
   cbob_spi_last_message = jiffies;
-  up(&cbob_spi);
-  return 1;
 }
 
 static int cbob_spi_do_transaction()
 {
   int i;
-  struct cbob_message *msg = cbob_spi_current_message;
  
   if (cbob_spi_current_transaction == CBOB_TRANSACTION_END)
     return 1;
@@ -118,30 +126,30 @@ static int cbob_spi_do_transaction()
   switch (cbob_spi_current_transaction) {
     case CBOB_TRANSACTION_CHUMBYHEADER: {
       spi_exchange_data(0xCB07);
-      spi_exchange_data(msg->cmd);
-      spi_exchange_data(msg->outcount > 0 ? msg->outcount : 1);
+      spi_exchange_data(cbob_spi_message_cmd);
+      spi_exchange_data(cbob_spi_message_outcount > 0 ? cbob_spi_message_outcount : 1);
       break;
     }
     
     case CBOB_TRANSACTION_CHUMBYDATA:
-      if(msg->outcount == 0)
+      if (cbob_spi_message_outcount == 0)
         spi_exchange_data(0);
       else {
-        for(i = 0;i < msg->outcount;i++)
-         spi_exchange_data(msg->outbuf[i]);
+        for (i = 0;i < cbob_spi_message_outcount;i++)
+         spi_exchange_data(cbob_spi_message_outbuf[i]);
       }
       break;
       
     case CBOB_TRANSACTION_CBOBLENGTH:
-      cbob_spi_current_cboblength = spi_exchange_data(0);
+      cbob_spi_message_replycount = spi_exchange_data(0);
       spi_exchange_data(0);
-      cbob_spi_update_desync(cbob_spi_current_cboblength, msg->incount);
+      cbob_spi_update_desync();
       break;
       
     case CBOB_TRANSACTION_CBOBDATA:
-      for(i = 0;i < cbob_spi_current_cboblength;i++) {
-        if(i < msg->incount)
-          msg->inbuf[i] = spi_exchange_data(0);
+      for (i = 0;i < cbob_spi_message_replycount;i++) {
+        if (i < cbob_spi_message_incount)
+          cbob_spi_message_inbuf[i] = spi_exchange_data(0);
         else 
           spi_exchange_data(0);
       }
@@ -153,6 +161,35 @@ static int cbob_spi_do_transaction()
     return 1;
   } else
     return 0;
+}
+
+static int cbob_spi_desync;
+static int cbob_spi_desync_count;
+static void cbob_spi_update_desync() {
+  int desync;
+  
+  if (cbob_spi_message_replycount == 1 && cbob_spi_message_incount == 0)
+    desync = 0;
+  if (cbob_spi_message_replycount > cbob_spi_message_incount)
+    desync = 1;
+  else if (cbob_spi_message_replycount < 0)
+    desync = 1;
+  else
+    desync = 0;
+    
+  if (desync == cbob_spi_desync)
+    return;
+    
+  cbob_spi_desync = desync;
+  
+  if (desync) {
+    cbob_spi_desync_count++;
+    printk(KERN_WARNING "CBOB desync detected. replycount is %hd, incount is %hd, cmd is %hd\n", 
+      cbob_spi_message_replycount, cbob_spi_message_incount, cbob_spi_message_cmd);
+  } else {
+    printk(KERN_NOTICE "CBOB resynced, after %d bad messages\n", cbob_spi_desync_count);
+    cbob_spi_desync_count = 0;
+  }
 }
 
 void cbob_spi_exit(void) 
@@ -185,25 +222,12 @@ static irqreturn_t cbob_timer_interrupt(int irq, void *dev_id, struct pt_regs *r
     return IRQ_NONE;
 
   IMX_TSTAT(TIMER) = TSTAT_CAPT | TSTAT_COMP; // clear interrupts
+  IMX_TCTL(TIMER) &= ~TCTL_TEN; // shut off timer
   
-  if (cbob_spi_do_transaction()) // if transaction finished
-    IMX_TCTL(TIMER) &= ~TCTL_TEN; // shut off timer
+  if (!cbob_spi_do_transaction()) // run transaction
+    IMX_TCTL(TIMER) |= TCTL_TEN; // if not last transaction, start timer to run it again
     
   return IRQ_HANDLED;
-}
-
-static void cbob_spi_update_desync(short replycount, short incount) {
-  int desync = (replycount > incount || replycount <= 0);
-  
-  if (desync == cbob_spi_desync)
-    return;
-    
-  cbob_spi_desync = desync;
-  
-  if (desync)
-    printk(KERN_WARNING "CBOB desync detected. replycount is %hd, incount is %hd\n", replycount, incount);
-  else
-    printk(KERN_NOTICE "CBOB resynced.\n");
 }
 
 /* Most of the following code was taken from chumby_accel.c
@@ -226,7 +250,7 @@ static unsigned int spi_exchange_data(unsigned int dataTx)
 {
   while(!spi_tx_fifo_empty());
 
-  SSP_TX_REG(SPI_CHAN)   = dataTx;	     // transfer data
+  SSP_TX_REG(SPI_CHAN)   = dataTx;       // transfer data
   SSP_CTRL_REG(SPI_CHAN) |= SSP_XCH;         // exchange data
     
   while(!spi_rx_fifo_data_ready());

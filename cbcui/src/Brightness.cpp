@@ -120,6 +120,7 @@ void Brightness::mouseUpdateChecker()
 
 void Brightness::dim()
 {
+    if (Page::currentPage()->getNoDim()) return;
     if(m_dimOff) setBrightness(0);
     else setBrightness(DIM_LEVEL);
     m_dimmed = true;

@@ -27,7 +27,6 @@
 
 WirelessAdapter::WirelessAdapter() : m_startscan(false)
 {
-  updateStatus();
   start();
 }
 WirelessAdapter::~WirelessAdapter() { }
@@ -46,8 +45,6 @@ void WirelessAdapter::startConnect(WirelessConnectionSettings connsettings)
 void WirelessAdapter::run() 
 {
   while (true) {
-    QThread::msleep(1000);
-    
     WirelessAdapterStatus oldstatus = m_status;
     updateStatus();
     if (oldstatus != m_status)
@@ -59,7 +56,7 @@ void WirelessAdapter::run()
     if (m_status.adapterstate < WirelessAdapterStatus::UP)
       continue;
     
-    if (m_startscan || oldstatus.adapterstate == WirelessAdapterStatus::NOT_UP) {
+    if (m_startscan || oldstatus.adapterstate != WirelessAdapterStatus::UP) {
       doScan();
       m_startscan = false;
     }
@@ -68,10 +65,12 @@ void WirelessAdapter::run()
       doConnect();
       m_startconnect = false;
     }
+    
+    QThread::msleep(1000);
   }
 }
 
-static const QRegExp essid_regexp("ESSID:\"(\\w+)\"");
+static const QRegExp essid_regexp("ESSID:\"(.+)\"");
 
 void WirelessAdapter::updateStatus()
 {
@@ -137,7 +136,7 @@ void WirelessAdapter::doScan()
   iwlist.waitForFinished();
   QString out = iwlist.readAllStandardOutput();
   
-  static const QRegExp scan_regexp("(\\w[\\w\\s]+):\\s?\"?([\\w\\d]+)");
+  static const QRegExp scan_regexp("(\\w[\\w\\s]+):\\s?\"?([\\w\\d\\s]+)");
   
   int pos=0;
   m_scanresults.clear();
@@ -171,7 +170,7 @@ void WirelessAdapter::doConnect() {
   
   QProcess::execute("iwpriv rausb0 set TxRate=6");
   QString &ssid = m_connsettings.ssid;
-  QProcess::execute("iwpriv rausb0 set SSID=" + ssid);
+  QProcess::execute("iwpriv rausb0 set \"SSID=" + ssid + "\"");
   
   switch (m_connsettings.encryption) {
     case WirelessConnectionSettings::WEP:

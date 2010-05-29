@@ -34,7 +34,7 @@
 #define ANGOFF          512
 #define MINREFRESH      10
 
-Graph::Graph(QWidget *parent) : Page(parent)
+Graph::Graph(QWidget *parent) : Page(parent, true)
 {
     setupUi(this);
 

@@ -29,8 +29,10 @@ class Page : public QWidget
     Q_OBJECT
 
 public:
-    Page(QWidget *parent = 0);
+    Page(QWidget *parent = 0, bool nodim=false);
     ~Page();
+    
+    inline bool getNoDim() { return m_nodim; }
     
     static Page *currentPage();
     Page *lastPage();
@@ -45,6 +47,7 @@ public slots:
 private:
    static Page *m_currentPage;
    Page *m_lastPage;
+   bool m_nodim;
 };
 
 #endif

@@ -25,7 +25,7 @@
 #include <sys/ioctl.h>
 #include "../../kernel/cbob/cbob.h"
 
-SensorPorts::SensorPorts(QWidget *parent) : Page(parent)
+SensorPorts::SensorPorts(QWidget *parent) : Page(parent, true)
 {
     setupUi(this);
     
