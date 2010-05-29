@@ -1,7 +1,7 @@
 #!/bin/sh
 cd /mnt/kiss
 
-./run_qt_app.sh ./cbcui -qws &
+./run_qt_app.sh ./cbcui -qws -display VNC:LinuxFb &
 
 if [ ! -e /tmp/cbc_run_startup ]; then
   touch /tmp/cbc_run_startup

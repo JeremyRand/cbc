@@ -47,6 +47,9 @@ filesystem: gcc qt
 	(cd files; rsync -a gcc-usercode g++-usercode run stop compile compile-usb mount-usb umount-usb $(DEST)/usercode)
 	(cd files; rsync -a gdb                                  $(DEST)/bin)
 	(cd files; rsync -a ts.conf                              $(DEST)/qt/etc)
+	mkdir -p $(DEST)/qt/plugins/gfxdrivers
+	(cd files; rsync -a libqgfxvnc.so                        $(DEST)/qt/plugins/gfxdrivers)
+	
 
 	# First make sure libcbc is updated
 	make -C $(LIBCBC_DIR)
