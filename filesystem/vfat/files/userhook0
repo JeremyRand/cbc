@@ -174,6 +174,7 @@ save_time
 
 # startup rsync daemon
 /mnt/kiss/bin/rsync --daemon --config=/mnt/kiss/rsyncd.conf &
+chmod -R 777 /mnt/user/
 
 echo "done."
 
