@@ -67,7 +67,7 @@ void FileManager::on_ui_directoryBrowser_entered(const QModelIndex &index)
     }
     else {
         QString filename = m_dir.fileName(m_index);
-        if(filename.endsWith(".c")){
+        if(filename.endsWith(".c") || filename.endsWith(".bin")){
             ui_actionButton->setText("Compile");
             ui_actionButton->show();
             ui_stopButton->hide();
@@ -131,7 +131,7 @@ void FileManager::on_ui_actionButton_clicked()
     }
     else{
         QString filePath = m_dir.filePath(m_index);
-        if(filePath.endsWith(".c")){
+        if(filePath.endsWith(".c") || filePath.endsWith(".bin")){
             QProcess::startDetached("aplay /mnt/kiss/sounds/compiling.wav");
             m_compiler.compileFile(filePath);
         }
