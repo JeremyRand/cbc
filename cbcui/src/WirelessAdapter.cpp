@@ -44,6 +44,14 @@ void WirelessAdapter::startConnect(WirelessConnectionSettings connsettings)
 
 void WirelessAdapter::run() 
 {
+  QProcess usbnet;
+  usbnet.start("insmod /drivers/usbnet.ko");
+  usbnet.waitForFinished();
+
+  QProcess asix;
+  asix.start("insmod /drivers/asix.ko");
+  asix.waitForFinished();
+  
   while (true) {
     WirelessAdapterStatus oldstatus = m_status;
     updateStatus();
@@ -75,27 +83,60 @@ static const QRegExp essid_regexp("ESSID:\"(.+)\"");
 void WirelessAdapter::updateStatus()
 {
   m_status = WirelessAdapterStatus();
+  static bool wiredconnected;
 
   QProcess ifconfig;
+  QProcess ifconfigwired; // Check wired as well
   ifconfig.start("ifconfig rausb0");
   ifconfig.waitForFinished();
   if (ifconfig.exitCode() != 0) {
-    m_status.adapterstate = WirelessAdapterStatus::NOT_DETECTED;
-    return;
+    // Check wired as well
+    ifconfigwired.start("ifconfig eth0"); // ToDo: will this work if the driver isn't enabled yet?
+    ifconfigwired.waitForFinished();
+    if (ifconfigwired.exitCode() != 0) {
+      m_status.adapterstate = WirelessAdapterStatus::NOT_DETECTED;
+      wiredconnected = false;
+      return;
+    }
   }
   
+  if(!wiredconnected && ifconfigwired.exitCode() == 0) {
+    QProcess wiredconnect;
+    wiredconnect.start("udhcpc -t 5 -n -p /var/run/udhcpc.eth0.pid -i eth0");
+    wiredconnect.waitForFinished();
+  }
+
+  QString outwired = ifconfigwired.readAllStandardOutput(); // Check wired as well
+
   QString out = ifconfig.readAllStandardOutput();
-  if (!out.contains("UP")) {
+  if (!out.contains("UP") && !outwired.contains("UP") ) { // Check wired as well
     m_status.adapterstate = WirelessAdapterStatus::NOT_UP;
     return;
   }
   m_status.adapterstate = WirelessAdapterStatus::UP;
   
+  static const QRegExp ip_regexpwired("inet addr:(\\S+)");
+  if (ip_regexpwired.indexIn(outwired) != -1) {
+    m_status.ip = ip_regexpwired.cap(1);
+    wiredconnected = true;
+  }
+  else {
+    wiredconnected = false;
+  }
+
   static const QRegExp mac_regexp("(?:..:){5}..");
-  if (mac_regexp.indexIn(out) != -1)
+  if (wiredconnected && mac_regexp.indexIn(outwired) != -1) // Check wired as well
+    m_status.mac = mac_regexp.cap(0);
+  else if (mac_regexp.indexIn(out) != -1)
     m_status.mac = mac_regexp.cap(0);
   else
     m_status.mac = "Unknown";
+
+  if(wiredconnected) {
+    m_status.ssid = "Wired Ethernet";
+    m_status.connectionstate = WirelessAdapterStatus::CONNECTED;
+    return;
+  }
     
   QProcess iwconfig;
   iwconfig.start("iwconfig rausb0");
@@ -136,7 +177,7 @@ void WirelessAdapter::doScan()
   iwlist.waitForFinished();
   QString out = iwlist.readAllStandardOutput();
   
-  static const QRegExp scan_regexp("(\\w[\\w\\s]+):\\s?\"?([\\w\\d\\s]+)");
+  static const QRegExp scan_regexp("(\\w[\\w\\s]+):\\s?\"?([\\w\\d\\s]*)");
   
   int pos=0;
   m_scanresults.clear();
@@ -149,7 +190,10 @@ void WirelessAdapter::doScan()
     
     if (key == "ESSID") {
       m_scanresults.append(ScanResult());
-      m_scanresults.back().ssid = value;
+      if (value.length() > 0)
+      	m_scanresults.back().ssid = value;
+      else
+      	m_scanresults.back().ssid = "<Hidden SSID>";
     } else if (key == "Encryption key" && !m_scanresults.isEmpty()) {
       m_scanresults.back().encrypted = (value == "on");
     } else if (key == "Quality" && !m_scanresults.isEmpty()) {
