@@ -1,13 +1,11 @@
 #!/bin/sh
 
-PRINT="/mnt/usb/fb_print --skiptop 50"
-PROG=/mnt/user/code/robot
-echo "" | $PRINT
+PROG=/mnt/user/bin/robot
+
+# for shared libraries
+export LD_LIBRARY_PATH=/mnt/user/lib:$LD_LIBRARY_PATH
 
 if [ -e $PROG ]; then
-  echo "Running robot.c" | $PRINT
-  ($PROG 2>&1 | $PRINT) &
-else
-  echo "No program to run" | $PRINT
+  $PROG
 fi
 

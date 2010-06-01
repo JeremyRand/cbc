@@ -30,7 +30,7 @@ void UserProgram::toggleState()
   
   if(m_userProgram.state() == QProcess::NotRunning) {
     if(robot.exists()) {
-      m_userProgram.start("/mnt/user/bin/robot");
+      m_userProgram.start("/mnt/kiss/usercode/run");
     }
     else {
       emit consoleOutput(QString("No program to run!\n"));
