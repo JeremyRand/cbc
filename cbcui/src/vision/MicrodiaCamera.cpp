@@ -125,6 +125,15 @@ void MicrodiaCamera::backgroundLoop()
   Image image(height(), width());
   
   while (1) {
+    if (m_fd > 0) {
+    	close(m_fd);
+    	m_fd = -1;
+    }
+    	
+    while (!m_processOneFrame && !m_processContinuousFrames) {
+    	sleep(1);
+    }
+    	
     // Repeatedly try to open camera
     while (1) {
       check_heap();
@@ -137,6 +146,10 @@ void MicrodiaCamera::backgroundLoop()
     while (1) {
       check_heap();
       if (m_exit) goto done;
+      
+      if (!m_processOneFrame && !m_processContinuousFrames)
+        break;
+      
       int len = read (m_fd, buffer, buffer_size);
       if (len == -1) {
         consecutive_readerrs++;
@@ -150,7 +163,7 @@ void MicrodiaCamera::backgroundLoop()
         consecutive_readerrs=0;
       }
 
-      if (!m_processOneFrame && !m_processContinuousFrames) continue;
+      
       if (len != buffer_size) printf("Error reading from camera:  expected %d bytes, got %d bytes\n", buffer_size, len);
       else
       {

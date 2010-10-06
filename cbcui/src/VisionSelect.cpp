@@ -20,17 +20,40 @@
 
 #include "VisionSelect.h"
 
+#define VISION_ENABLED_KEY   "Vision_Enabled"
+
 VisionSelect::VisionSelect(QWidget *parent) :
         Page(parent),
         m_tracking(parent, &m_vision.m_colorTracker),
-        m_setting(parent, m_vision.m_camera,&m_vision.m_rawCameraView)
+        m_setting(parent, m_vision.m_camera,&m_vision.m_rawCameraView),
+        m_settings("/mnt/user/cbc_v2.config",QSettings::NativeFormat)
 {
     setupUi(this);
 
     QObject::connect(ui_trackingButton, SIGNAL(clicked()), &m_tracking, SLOT(raisePage()));
     QObject::connect(ui_settingButton, SIGNAL(clicked()), &m_setting, SLOT(raisePage()));
+    QObject::connect(ui_enabledCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enabled_changed(int)));
+    
+    ui_enabledCheckBox->setChecked(m_settings.value(VISION_ENABLED_KEY, true).toBool());
 }
 
 VisionSelect::~VisionSelect()
 {
 }
+
+void VisionSelect::enabled_changed(int newstate)
+{
+    if (newstate == Qt::Checked) {
+        ui_trackingButton->setEnabled(true);
+        ui_settingButton->setEnabled(true);
+        m_vision.m_camera->requestContinuousFrames();
+    } else {
+        ui_trackingButton->setEnabled(false);
+        ui_settingButton->setEnabled(false);
+        m_vision.m_camera->stopFrames();
+    }
+    
+    m_settings.setValue(VISION_ENABLED_KEY, newstate == Qt::Checked);
+    m_settings.sync();
+}
+

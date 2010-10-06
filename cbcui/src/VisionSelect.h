@@ -36,10 +36,15 @@ public:
     VisionSelect(QWidget *parent = 0);
     ~VisionSelect();
 
+public slots:
+    void enabled_changed(int newstate);
+
 private:
    Vision m_vision;
    VisionTracking m_tracking;
    VisionSettings m_setting;
+   
+   QSettings m_settings;
 };
 
 #endif

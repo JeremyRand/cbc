@@ -25,6 +25,8 @@
 
 #include <QObject>
 #include <QThread>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QMetaType>
 #include <QString>
 #include <QStringList>
@@ -82,8 +84,8 @@ public:
   WirelessAdapter();
   ~WirelessAdapter();
   
-  inline const WirelessAdapterStatus &getStatus() { return m_status; }
-  inline const QList<ScanResult> &getScanResults() { return m_scanresults; }
+  WirelessAdapterStatus getStatus() const;
+  QList<ScanResult> getScanResults() const;
   
 public slots:
   void startScan();
@@ -97,9 +99,9 @@ private:
   virtual void run();
   void updateStatus();
   void up();
-  void doScan();
-  void doConnect();
-  void doObtainIP();
+  void doScan(QMutexLocker &locker);
+  void doConnect(QMutexLocker &locker);
+  void doObtainIP(QMutexLocker &locker);
 
   bool m_startscan;
   bool m_startconnect;
@@ -107,6 +109,7 @@ private:
 
   WirelessAdapterStatus m_status;
   QList<ScanResult> m_scanresults;
+  mutable QMutex m_mutex;
 };
 
 #endif
