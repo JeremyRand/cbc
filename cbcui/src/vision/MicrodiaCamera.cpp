@@ -47,6 +47,10 @@ MicrodiaCamera::MicrodiaCamera()
   system("insmod /mnt/usb/videodev.ko");
   system("insmod /mnt/usb/microdia.ko max_urbs=20");
 
+  system("mkfifo /tmp/switch_cam"); // Create the FIFO for camera switching
+
+  m_video_port = 1; // default video device is /dev/video0 (port 1)
+
   m_thread.start();
 }
 
@@ -76,11 +80,16 @@ void MicrodiaCamera::stopFrames()
 
 bool MicrodiaCamera::openCamera()
 {
+  char device_name[20];
+
   if (m_fd >= 0) {
     close(m_fd);
     m_fd = -1;
-  }      
-  int fd = open("/dev/video0", O_RDWR);
+  }
+
+  sprintf(device_name, "/dev/video%d", ((int)m_video_port)-1);
+      
+  int fd = open(device_name, O_RDWR);
   
   if (fd < 0) 
     return false;
@@ -124,6 +133,9 @@ void MicrodiaCamera::backgroundLoop()
   unsigned char buffer[buffer_size];
   Image image(height(), width());
   
+  int switch_fifo = open("/tmp/switch_cam", O_RDONLY | O_NONBLOCK);
+  int switch_fifo_len = 0;
+
   while (1) {
     if (m_fd > 0) {
     	close(m_fd);
@@ -136,6 +148,8 @@ void MicrodiaCamera::backgroundLoop()
     	
     // Repeatedly try to open camera
     while (1) {
+      switch_fifo_len = read (switch_fifo, &m_video_port, 1);
+
       check_heap();
       if (m_exit) goto done;
       if (openCamera()) break;
@@ -144,6 +158,13 @@ void MicrodiaCamera::backgroundLoop()
 
     int consecutive_readerrs=0;
     while (1) {
+
+      switch_fifo_len = read (switch_fifo, &m_video_port, 1);
+      if(switch_fifo_len == 1)
+      {
+        break;
+      }
+
       check_heap();
       if (m_exit) goto done;
       
@@ -183,6 +204,9 @@ void MicrodiaCamera::backgroundLoop()
     }
   }
   done:
+
+  close(switch_fifo);
+
   printf("Exiting MicrodiaCamera::backgroundLoop()\n");
 }
 

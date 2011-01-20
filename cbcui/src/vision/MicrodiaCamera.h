@@ -63,6 +63,7 @@ protected:
   volatile bool m_processContinuousFrames;
   bool m_exit;
   int  m_fd;
+  unsigned char m_video_port;
   MicrodiaCameraThread m_thread;
   void checkSettings();
   void readSettings();
