@@ -50,6 +50,10 @@ MicrodiaCamera::MicrodiaCamera()
   system("mkfifo /tmp/switch_cam"); // Create the FIFO for camera switching
 
   m_video_port = 1; // default video device is /dev/video0 (port 1)
+  for(int count = 0; count < 256; count++) // Keep an array of all connected video devices
+  {
+    m_fd_array[count] = -1;
+  }
 
   m_thread.start();
 }
@@ -148,7 +152,11 @@ void MicrodiaCamera::backgroundLoop()
     	
     // Repeatedly try to open camera
     while (1) {
-      switch_fifo_len = read (switch_fifo, &m_video_port, 1);
+
+      // Switch video ports if requested
+      m_fd_array[m_video_port] = m_fd; // backup old video port
+      switch_fifo_len = read (switch_fifo, &m_video_port, 1); // check if new port is requested
+      m_fd = m_fd_array[m_video_port]; // access new video port
 
       check_heap();
       if (m_exit) goto done;
@@ -159,8 +167,13 @@ void MicrodiaCamera::backgroundLoop()
     int consecutive_readerrs=0;
     while (1) {
 
-      switch_fifo_len = read (switch_fifo, &m_video_port, 1);
-      if(switch_fifo_len == 1)
+      // Switch video ports if requested
+      m_fd_array[m_video_port] = m_fd; // backup old video port
+      switch_fifo_len = read (switch_fifo, &m_video_port, 1); // check if new port is requested
+      m_fd = m_fd_array[m_video_port]; // access new video port
+
+      // If this is a new port, break and open it
+      if(m_fd == -1)
       {
         break;
       }

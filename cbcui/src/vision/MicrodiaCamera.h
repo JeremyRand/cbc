@@ -64,6 +64,7 @@ protected:
   bool m_exit;
   int  m_fd;
   unsigned char m_video_port;
+  int m_fd_array[256];
   MicrodiaCameraThread m_thread;
   void checkSettings();
   void readSettings();
