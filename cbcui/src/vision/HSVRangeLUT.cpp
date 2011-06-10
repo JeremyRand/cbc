@@ -41,6 +41,76 @@ void HSVRangeLUT::setModel(uint8 channel, const HSVRange &range)
   }
 }
 
+// channel = channelIn
+void HSVRangeLUT::applyCopy(uint8 channel, uint8 channelIn)
+{
+  //m_models[channel] = range;
+  uint8 mask = 1<<channel;
+  uint8 maskIn = 1<<channelIn;
+  for (unsigned p = 0; p < Pixel565::MAXVAL+1; p++) {
+    //HSV hsv = Pixel565toHSV::convert(Pixel565(p));
+    //if (range.contains(Pixel565(p))) {
+    if ( (m_lut[p] & maskIn) ) {
+      m_lut[p] |= mask; // set the output
+    } else {
+      m_lut[p] &= ~mask; // clear the output
+    }
+  }
+}
+
+// channel = Not channelIn
+void HSVRangeLUT::applyNot(uint8 channel, uint8 channelIn)
+{
+  //m_models[channel] = range;
+  uint8 mask = 1<<channel;
+  uint8 maskIn = 1<<channelIn;
+  for (unsigned p = 0; p < Pixel565::MAXVAL+1; p++) {
+    //HSV hsv = Pixel565toHSV::convert(Pixel565(p));
+    //if (range.contains(Pixel565(p))) {
+    if (! (m_lut[p] & maskIn) ) {
+      m_lut[p] |= mask; // set the output
+    } else {
+      m_lut[p] &= ~mask; // clear the output
+    }
+  }
+}
+
+// channel = channelInA And channelInB
+void HSVRangeLUT::applyAnd(uint8 channel, uint8 channelInA, uint8 channelInB)
+{
+  //m_models[channel] = range;
+  uint8 mask = 1<<channel;
+  uint8 maskInA = 1<<channelInA;
+  uint8 maskInB = 1<<channelInB;
+  for (unsigned p = 0; p < Pixel565::MAXVAL+1; p++) {
+    //HSV hsv = Pixel565toHSV::convert(Pixel565(p));
+    //if (range.contains(Pixel565(p))) {
+    if ( (m_lut[p] & maskInA) && (m_lut[p] & maskInB) ) {
+      m_lut[p] |= mask; // set the output
+    } else {
+      m_lut[p] &= ~mask; // clear the output
+    }
+  }
+}
+
+// channel = channelInA Or channelInB
+void HSVRangeLUT::applyOr(uint8 channel, uint8 channelInA, uint8 channelInB)
+{
+  //m_models[channel] = range;
+  uint8 mask = 1<<channel;
+  uint8 maskInA = 1<<channelInA;
+  uint8 maskInB = 1<<channelInB;
+  for (unsigned p = 0; p < Pixel565::MAXVAL+1; p++) {
+    //HSV hsv = Pixel565toHSV::convert(Pixel565(p));
+    //if (range.contains(Pixel565(p))) {
+    if ( (m_lut[p] & maskInA) || (m_lut[p] & maskInB) ) {
+      m_lut[p] |= mask; // set the output
+    } else {
+      m_lut[p] &= ~mask; // clear the output
+    }
+  }
+}
+
 void HSVRangeLUT::test()
 {
   HSVRangeLUT lut;

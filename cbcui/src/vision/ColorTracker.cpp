@@ -42,6 +42,12 @@ ColorTracker::ColorTracker(int nmodels)
 {
     this->loadModels();
     for (int i = 0; i < nmodels; i++) m_assemblers.push_back(new BlobAssembler());
+
+    system("mkfifo /tmp/model_cmd");
+    m_model_fifo = open("/tmp/model_cmd", O_RDONLY | O_NONBLOCK);
+    m_model_fifo_len = 0;
+
+    m_model_op = m_model_out = m_model_in_A = m_model_in_B = m_model_in_C = 0;
 }
 
 ColorTracker::~ColorTracker()
@@ -134,6 +140,8 @@ static int mtime()
 
 void ColorTracker::processFrame(const Image &image)
 {
+  processModelPipes();
+
   int thisFrameTime= mtime();
   m_frameNumber++;
   //printf("ColorTracker::processFrame begin\n");
@@ -171,6 +179,78 @@ void ColorTracker::processFrame(const Image &image)
   
   updateSharedResults(thisFrameTime);
   m_lastFrameTime = thisFrameTime;
+}
+
+void ColorTracker::processModelPipes()
+{
+  if(! m_model_op)
+  {
+    m_model_out = m_model_in_A = m_model_in_B = m_model_in_C = 0;
+    m_model_fifo_len = read (m_model_fifo, &m_model_op, 1);
+  }
+  else if(! m_model_out)
+  {
+    m_model_in_A = m_model_in_B = m_model_in_C = 0;
+    m_model_fifo_len = read (m_model_fifo, &m_model_out, 1);
+  }
+  else if(! m_model_in_A)
+  {
+    m_model_in_B = m_model_in_C = 0;
+    m_model_fifo_len = read (m_model_fifo, &m_model_in_A, 1);
+  }
+  else if(! m_model_in_B)
+  {
+    m_model_in_C = 0;
+    m_model_fifo_len = read (m_model_fifo, &m_model_in_B, 1);
+  }
+  else if(! m_model_in_C)
+  {
+    m_model_fifo_len = read (m_model_fifo, &m_model_in_C, 1);
+  }
+  else
+  {
+    if(m_model_op == 1) m_lut.applyCopy(m_model_out-1, m_model_in_A-1);
+    if(m_model_op == 2) m_lut.applyNot(m_model_out-1, m_model_in_A-1);
+    if(m_model_op == 3) m_lut.applyAnd(m_model_out-1, m_model_in_A-1, m_model_in_B-1);
+    if(m_model_op == 4) m_lut.applyOr(m_model_out-1, m_model_in_A-1, m_model_in_B-1);
+    if(m_model_op == 5) 
+    {
+      HSVRange model = m_lut.getModel(m_model_in_A-1);
+      model.h.min = ((uint16) (m_model_in_B-1) ) << 8 | ((uint16) m_model_in_C);
+      m_lut.setModel(m_model_out, model);
+    }
+    if(m_model_op == 6) 
+    {
+      HSVRange model = m_lut.getModel(m_model_in_A-1);
+      model.h.max = ((uint16) (m_model_in_B-1) ) << 8 | ((uint16) m_model_in_C);
+      m_lut.setModel(m_model_out, model);
+    }
+    if(m_model_op == 7) 
+    {
+      HSVRange model = m_lut.getModel(m_model_in_A-1);
+      model.s.min = m_model_in_B;
+      m_lut.setModel(m_model_out, model);
+    }
+    if(m_model_op == 8) 
+    {
+      HSVRange model = m_lut.getModel(m_model_in_A-1);
+      model.s.max = m_model_in_B;
+      m_lut.setModel(m_model_out, model);
+    }
+    if(m_model_op == 9) 
+    {
+      HSVRange model = m_lut.getModel(m_model_in_A-1);
+      model.v.min = m_model_in_B;
+      m_lut.setModel(m_model_out, model);
+    }
+    if(m_model_op == 10) 
+    {
+      HSVRange model = m_lut.getModel(m_model_in_A-1);
+      model.v.max = m_model_in_B;
+      m_lut.setModel(m_model_out, model);
+    }
+    m_model_op = m_model_out = m_model_in_A = m_model_in_B = m_model_in_C = 0;
+  }
 }
 
 void ColorTracker::shareResults(const char *filename)

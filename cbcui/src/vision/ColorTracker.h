@@ -39,6 +39,7 @@ public:
   ColorTracker(int nmodels);
   ~ColorTracker();
   virtual void processFrame(const Image &image);
+  void processModelPipes();
   void setModel(uint8 channel, const HSVRange &range);
   HSVRange getModel(uint8 channel) const;
   bool loadModels();
@@ -59,6 +60,8 @@ protected:
   std::vector<BlobAssembler*> m_assemblers;
 
   std::string modelSaveFile() const;
+
+  uint8 m_model_fifo, m_model_fifo_len, m_model_op, m_model_out, m_model_in_A, m_model_in_B, m_model_in_C;
 
   // For viewing images and tracking
   DisplayMode m_displayMode;

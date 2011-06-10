@@ -32,6 +32,10 @@ public:
   uint8 lookup(Pixel565 value) const  { return lookup(value.rgb); }
   bool contains(uint8 channel, Pixel565 value) const { return !!((1<<channel) & lookup(value)); }
   void setModel(uint8 channel, const HSVRange &range);
+  void applyCopy(uint8 channel, uint8 channelIn);
+  void applyNot(uint8 channel, uint8 channelIn);
+  void applyAnd(uint8 channel, uint8 channelInA, uint8 channelInB);
+  void applyOr(uint8 channel, uint8 channelInA, uint8 channelInB);
   HSVRange getModel(uint8 channel) const { return m_models[channel]; }
   static void test();
 protected:
