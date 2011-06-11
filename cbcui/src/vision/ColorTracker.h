@@ -62,6 +62,7 @@ protected:
   std::string modelSaveFile() const;
 
   uint8 m_model_fifo, m_model_fifo_len, m_model_op, m_model_out, m_model_in_A, m_model_in_B, m_model_in_C;
+  short m_min_x, m_max_x, m_min_y, m_max_y;
 
   // For viewing images and tracking
   DisplayMode m_displayMode;

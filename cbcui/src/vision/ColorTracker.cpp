@@ -48,6 +48,11 @@ ColorTracker::ColorTracker(int nmodels)
     m_model_fifo_len = 0;
 
     m_model_op = m_model_out = m_model_in_A = m_model_in_B = m_model_in_C = 0;
+
+    m_min_x = 0;
+    m_min_y = 0;
+    m_max_x = 160;
+    m_max_y = 120;
 }
 
 ColorTracker::~ColorTracker()
@@ -249,6 +254,11 @@ void ColorTracker::processModelPipes()
       model.v.max = m_model_in_B;
       m_lut.setModel(m_model_out, model);
     }
+    if(m_model_op == 11) m_min_x = m_model_in_A-1;
+    if(m_model_op == 12) m_max_x = m_model_in_A-1;
+    if(m_model_op == 13) m_min_y = m_model_in_A-1;
+    if(m_model_op == 14) m_max_y = m_model_in_A-1;
+
     m_model_op = m_model_out = m_model_in_A = m_model_in_B = m_model_in_C = 0;
   }
 }
@@ -335,15 +345,15 @@ void ColorTracker::assembleBlobs(const Image &src, BlobAssembler &bass,
   int dest_offset = dest ? (char*)dest->scanLine(0) - (char*)src.scanLine(0) : 0;
 
   // Process the image into segments and feed to the blob assembler
-  for (int y= 0; y< src.nrows; y++) {
+  for (int y= /*0*/ m_min_y; y< src.nrows && y<m_max_y; y++) {
     Segment seg;
     seg.row = y;
     const Pixel565 *in = src.scanLine(y);
-    int x = 0;
+    int x = /*0*/ m_min_x;
     while (1) {
       // Skip out-of-model pixels.
       while (1) {
-        if (x >= src.ncols) goto end_of_row;
+        if (x >= src.ncols || x >= m_max_x) goto end_of_row;
         if (m_lut.contains(channel, *in)) break;
         in++; x++;
       }
@@ -352,7 +362,7 @@ void ColorTracker::assembleBlobs(const Image &src, BlobAssembler &bass,
       if (dest) *(Pixel565*)((char*)in+dest_offset)= matchColor;
       in++; x++;
       // Scan through in-model pixels
-      while (x < src.ncols && m_lut.contains(channel, *in)) {
+      while (x < src.ncols && x < m_max_x && m_lut.contains(channel, *in)) {
         if (dest) *(Pixel565*)((char*)in+dest_offset)= matchColor;
         in++; x++;
       }

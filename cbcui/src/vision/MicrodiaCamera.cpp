@@ -154,13 +154,25 @@ void MicrodiaCamera::backgroundLoop()
     while (1) {
 
       // Switch video ports if requested
-      m_fd_array[m_video_port] = m_fd; // backup old video port
+      m_fd_array[m_video_port & 0x7F] = m_fd; // backup old video port
       switch_fifo_len = read (switch_fifo, &m_video_port, 1); // check if new port is requested
-      m_fd = m_fd_array[m_video_port]; // access new video port
+      m_fd = m_fd_array[m_video_port & 0x7F]; // access new video port
 
       check_heap();
       if (m_exit) goto done;
-      if (openCamera()) break;
+      
+      if(m_video_port & 0x80)
+      {
+           if (m_fd >= 0) 
+           {
+              close(m_fd);
+              m_fd = -1;
+           }
+      }
+      else
+      {
+         if (openCamera()) break;
+      }
       sleep(2);
     }
 
@@ -168,13 +180,19 @@ void MicrodiaCamera::backgroundLoop()
     while (1) {
 
       // Switch video ports if requested
-      m_fd_array[m_video_port] = m_fd; // backup old video port
+      m_fd_array[m_video_port & 0x7F] = m_fd; // backup old video port
       switch_fifo_len = read (switch_fifo, &m_video_port, 1); // check if new port is requested
-      m_fd = m_fd_array[m_video_port]; // access new video port
+      m_fd = m_fd_array[m_video_port & 0x7F]; // access new video port
 
       // If this is a new port, break and open it
-      if(m_fd == -1)
+      if(m_fd == -1 || (m_video_port & 0x80) )
       {
+        if (m_fd >= 0) 
+        {
+           close(m_fd);
+           m_fd = -1;
+        }
+
         break;
       }
 
