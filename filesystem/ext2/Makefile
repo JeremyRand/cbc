@@ -12,6 +12,7 @@ CBC_GUI_DIR=../../cbcui
 TRACK_DIR=../../userlib/tracklib
 LIBCBC_DIR=../../userlib/libcbc
 INIT_DIR=../../userlib/init
+COMMONCPP_DIR=../../userlib/libcommonc++
 
 SHARED_DIR=../../utils/shared_mem
 
@@ -97,6 +98,8 @@ filesystem: gcc qt jvm
 	(cd $(LIBCBC_DIR)/src; rsync -a process.h botball.h cbc.h  $(DEST)/usercode/include)
 	(cd $(LIBCBC_DIR)/src; rsync -a cbc2cxx.h $(DEST)/usercode/include)
 	
+	# libcommonc++
+	(cd $(COMMONCPP_DIR); rsync -a libcommonc++.a                 $(DEST)/usercode/lib)
 
 	# CBC graphical interface
 	make -C $(CBC_GUI_DIR)
