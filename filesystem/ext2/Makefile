@@ -100,6 +100,7 @@ filesystem: gcc qt jvm
 	
 	# libcommonc++
 	(cd $(COMMONCPP_DIR); rsync -a libcommonc++.a                 $(DEST)/usercode/lib)
+	(cd $(COMMONCPP_DIR); rsync -a commonc++                  $(DEST)/usercode/include/)
 
 	# CBC graphical interface
 	make -C $(CBC_GUI_DIR)
