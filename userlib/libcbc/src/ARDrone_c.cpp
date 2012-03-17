@@ -60,7 +60,8 @@ void monitor_sensors()
 	while(1)
 	{
 		drone_get_battery();
-		msleep(50);
+		update_position_tracking();
+		msleep(15);
 	}
 }
 
@@ -204,20 +205,59 @@ void update_position_tracking()
 	if(! zero_vy || ! requested_enable_move) vy = -latest_data.speed.vy;
 	if(! zero_z)
 	{
-		if(fabs(latest_data.altitude * 1000.0 - z)>0.001)
-		{
+		//if(fabs(latest_data.altitude * 1000.0 - z)>0.001)
+		//{
 			vz = (latest_data.altitude * 1000.0 - z) * (current_receive_time - last_nav_receive) / 1000.0;
 			z = latest_data.altitude * 1000.0; // this returns mm
-		}
+		//}
+	}
+	else
+	{
+		z += vz * (current_time-last_nav_calc);
 	}
 
 	x += vx * (current_time-last_nav_calc);
-	y += (vy * 7.3 / 1.256) * (current_time-last_nav_calc);
+	y += (vy /* * 7.3 / 1.256 */ ) * (current_time-last_nav_calc);
 
 	yaw = latest_data.orientation.yaw; // this returns deg
 
 	last_nav_calc = current_time;
 	last_nav_receive = current_receive_time;
+}
+
+float drone_get_x()
+{
+	return x;
+}
+
+float drone_get_y()
+{
+	return y;
+}
+
+float drone_get_z()
+{
+	return z;
+}
+
+float drone_get_yaw()
+{
+	return yaw;
+}
+
+float drone_get_x_vel()
+{
+	return vx;
+}
+
+float drone_get_y_vel()
+{
+	return vy;
+}
+
+float drone_get_z_vel()
+{
+	return vz;
 }
 
 void move_control_thread()
