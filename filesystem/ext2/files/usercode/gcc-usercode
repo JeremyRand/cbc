@@ -1,5 +1,7 @@
 #!/bin/sh
-/mnt/kiss/gcc/bin/gcc -w -I/mnt/kiss/usercode/include -include track.h -include stdio.h -include unistd.h -include fcntl.h -include sys/types.h -include sys/socket.h -include netinet/in.h -include arpa/inet.h -include netdb.h -include errno.h -include string.h -include cbc.h -include compat.h -include process.h -include create.h -include botball.h "$@" /mnt/kiss/usercode/lib/init.o /mnt/kiss/usercode/lib/libcbc.a /mnt/kiss/usercode/lib/libtrack.a /mnt/kiss/usercode/lib/libshared.a -lpthread -lm
+/mnt/kiss/gcc/bin/gcc -w -c -I/mnt/kiss/usercode/include -include track.h -include stdio.h -include unistd.h -include fcntl.h -include sys/types.h -include sys/socket.h -include netinet/in.h -include arpa/inet.h -include netdb.h -include errno.h -include string.h -include cbc.h -include compat.h -include process.h -include create.h -include botball.h -include ARDrone_c.h "$1" "$2" -o "$4".o
+echo "Linking..."
+/mnt/kiss/gcc/bin/g++ -w "$4".o -o "$4".bin /mnt/kiss/usercode/lib/init.o /mnt/kiss/usercode/lib/libcbc.a /mnt/kiss/usercode/lib/libtrack.a /mnt/kiss/usercode/lib/libshared.a /mnt/kiss/usercode/lib/libcommonc++.so.10 -lpthread -lm
 sync
 sync
 

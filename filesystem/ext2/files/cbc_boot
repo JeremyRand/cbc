@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export LD_LIBRARY_PATH=/lib
+export LD_LIBRARY_PATH=/lib:/mnt/kiss/usercode/lib
 CBC_DEBUG=0
 KISS=/mnt/kiss
 USER=/mnt/user

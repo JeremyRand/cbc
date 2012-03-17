@@ -10,7 +10,11 @@ mkdir -p $DIR
 echo "Compiling ${1}"
 FOLDER="${1%/*}"
 /mnt/kiss/usercode/gcc-usercode "-I${FOLDER}" "${1}" -o $PROG 2>&1
-if [ -e $PROG ]; then
+if [ -e "$PROG".bin ]; then
+echo "#!/bin/sh
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mnt/kiss/usercode/lib
+"$PROG".bin" >$PROG
+chmod 777 $PROG 
   echo "Compile succeeded." 
   echo "${1}" > $NAME
 	exit 0

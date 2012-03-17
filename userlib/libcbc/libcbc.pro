@@ -22,6 +22,7 @@ HEADERS += src/cbc.h \
            src/cbcserial.h \
            src/create.h \
            src/ARDrone.h \
+           src/ARDrone_c.h \
            src/cbc2cxx.h \
            ../shared_mem/shared_mem.h
 SOURCES += src/botball.c \ 
@@ -30,4 +31,5 @@ SOURCES += src/botball.c \
            src/process.c \
            src/cbcserial.c \
            src/create.c \
-           src/ARDrone.cpp
+           src/ARDrone.cpp \
+           src/ARDrone_c.cpp
