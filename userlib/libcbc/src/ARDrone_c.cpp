@@ -182,6 +182,7 @@ void update_position_tracking()
 	bool zero_vx = false;
 	bool zero_vy = false;
 	bool zero_z = false;
+	bool zero_yaw = false;
 
 
 	if(latest_data.speed.vx < 0.001 && latest_data.speed.vx > -0.001)
@@ -199,6 +200,12 @@ void update_position_tracking()
 	{
 		//printf("Zero z\n");
 		zero_z = true;
+	}
+
+	if(latest_data.orientation.yaw < 0.001 && latest_data.orientation.yaw > -0.001)
+	{
+		//printf("Zero z\n");
+		zero_yaw = true;
 	}
 
 	if(! zero_vx || ! requested_enable_move) vx = latest_data.speed.vx;
@@ -219,7 +226,7 @@ void update_position_tracking()
 	x += vx * (current_time-last_nav_calc);
 	y += (vy /* * 7.3 / 1.256 */ ) * (current_time-last_nav_calc);
 
-	yaw = latest_data.orientation.yaw; // this returns deg
+	if(! zero_yaw) yaw = -latest_data.orientation.yaw; // this returns deg
 
 	last_nav_calc = current_time;
 	last_nav_receive = current_receive_time;
@@ -271,7 +278,7 @@ void move_control_thread()
 
 void send_control_parameters(int enable, float x_tilt, float y_tilt, float yaw_vel, float z_vel)
 {
-	myDrone->controller().sendControlParameters(enable, -x_tilt, -y_tilt, yaw_vel, z_vel);
+	myDrone->controller().sendControlParameters(enable, -x_tilt, -y_tilt, -yaw_vel, z_vel);
 }
 
 void drone_move(int enable, float x_tilt, float y_tilt, float yaw_vel, float z_vel)
