@@ -30,6 +30,9 @@
 // Self
 #include "MicrodiaCamera.h"
 
+#define EXTERNAL_CAMERA_BUFFER "/tmp/external_camera_buffer"
+#define EXTERNAL_CAMERA_READY "/tmp/external_camera_ready"
+
 void MicrodiaCameraThread::run()
 {
     m_camera.backgroundLoop();
@@ -135,11 +138,48 @@ void MicrodiaCamera::backgroundLoop()
 
     int consecutive_readerrs=0;
 
+    bool external_camera_in_use;
+    int external_camera_file;
+
     while (1)
     {
         check_heap();
 
-        len = read(m_camDevice, buffer, buffer_size);  // read in the image from the camera
+        external_camera_in_use = access( EXTERNAL_CAMERA_BUFFER, F_OK ) != -1;
+
+        if( external_camera_in_use ) 
+        {
+            // external camera buffer is in use
+
+            // Wait for frame to be ready
+            while(! (access(EXTERNAL_CAMERA_READY, F_OK) != -1) )
+            {
+                // Check if the external camera has been disabled
+                external_camera_in_use = access( EXTERNAL_CAMERA_BUFFER, F_OK ) != -1;
+                if(! external_camera_in_use) break;
+            }
+            
+            // If external camera is now disabled, go back to the beginning
+            if(! external_camera_in_use) continue;
+
+            // a new frame is ready for reading
+
+            // open file
+            external_camera_file = open(EXTERNAL_CAMERA_BUFFER, O_RDONLY);
+
+            len = read(external_camera_file, buffer, buffer_size);  // read in the image from the file
+
+            // close file
+            close(external_camera_file);
+
+            // don't use this frame again
+            remove(EXTERNAL_CAMERA_READY);
+            
+        } else 
+        {
+            // use Microdia camera
+            len = read(m_camDevice, buffer, buffer_size);  // read in the image from the camera
+        }
 
         if (len == -1) {                                // check for errors
             if (consecutive_readerrs >= 10) {
