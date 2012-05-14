@@ -107,6 +107,9 @@ filesystem: gcc qt jvm
 	make -C $(CBC_GUI_DIR)
 	rsync -a $(CBC_GUI_DIR)/cbcui $(DEST)/gui
 
+	# Fix a cbcui brick (added by Jeremy, not sure why it's necessary?)
+	rsync -a $(DEST)/qt/lib/libts-1.0.so.0 $(DEST)/qt/lib/libts-0.0.so.0
+
 clean:
 	rm -rf ../kiss-ext2
 
