@@ -11,6 +11,10 @@ under contract for KISS Institute for Practical Robotics.
 
 #include "compat.h"
 #include <math.h>
+#include <fcntl.h>
+
+#define EXTERNAL_CAMERA_BUFFER "/tmp/external_camera_buffer"
+#define EXTERNAL_CAMERA_READY "/tmp/external_camera_ready"
 
 using namespace ARDrone;
 using namespace std;
@@ -265,6 +269,103 @@ float drone_get_y_vel()
 float drone_get_z_vel()
 {
 	return vz;
+}
+
+void drone_front_camera()
+{
+	myDrone->controller().switchToFrontCamera();
+}
+
+void drone_down_camera()
+{
+	myDrone->controller().switchToDownCamera();
+}
+
+void enable_drone_vision()
+{
+	//printf("Writing initial camera data\n");
+	write_external_camera_data();
+	//printf("Enabling Drone vision\n");
+	myDrone->videoDataReceiver().setEnableCbcuiVision(true);
+	//printf("enable_drone_vision exit\n");
+}
+
+void disable_drone_vision()
+{
+	myDrone->videoDataReceiver().setEnableCbcuiVision(false);
+	delete_external_camera_data();
+}
+
+void write_external_camera_data()
+{
+	//printf("write_external_camera_data enter\n");
+	// If Ready Flag is not present, or if buffer is not present
+	if( ! (access(EXTERNAL_CAMERA_READY, F_OK) != -1) || ! (access(EXTERNAL_CAMERA_BUFFER, F_OK) != -1) )
+	{
+		VideoDecoder::Image * videoData = new VideoDecoder::Image();
+		long timestamp;
+		
+		int srcw, srch, destw, desth;
+		int x, y, srcx, srcy;
+		int src_index;
+
+		int buffer_file;
+		int ready_file;
+	
+		//printf("Image created\n");
+		
+		myDrone->videoDataReceiver().copyDataTo(*videoData, timestamp);
+		
+		//printf("Copied data\n");
+		
+		//printf("Dimensions: %d by %d\n", videoData->width, videoData->height);
+		
+		srcw = videoData->width;
+		srch = videoData->height;
+	
+		destw = 160;
+		desth = 120;
+		
+		buffer_file = open(EXTERNAL_CAMERA_BUFFER, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+
+		//printf("Opened buffer, %d\n", buffer_file);	
+
+		for(y=0; y<desth; y++)
+		{
+			srcy = y * srch / desth;
+
+			for(x=0; x<destw; x++)
+			{
+				srcx = x * srcw / destw;
+				src_index = ((srcy*srcw)+srcx)*3;
+				
+				write(buffer_file, videoData->data + src_index+2, 1); // B
+				write(buffer_file, videoData->data + src_index+1, 1); // G
+				write(buffer_file, videoData->data + src_index+0, 1); // R
+			}
+		}
+		
+		close(buffer_file);
+
+		//printf("Closed buffer\n");
+
+		delete videoData;
+		
+		//printf("Writing ready flag\n");
+
+		ready_file = open(EXTERNAL_CAMERA_READY, O_WRONLY | O_CREAT, 0666);
+		close(ready_file);
+
+		//printf("ready_file %d\n", ready_file);
+	}
+
+	//printf("write_external_camera_data exit\n");	
+}
+
+void delete_external_camera_data()
+{
+	remove(EXTERNAL_CAMERA_BUFFER);
+	remove(EXTERNAL_CAMERA_READY);
 }
 
 void move_control_thread()

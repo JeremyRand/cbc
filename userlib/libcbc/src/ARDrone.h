@@ -237,12 +237,14 @@ namespace ARDrone
     VideoDecoder::Image videoBuffer[2]; // Mod by Jeremy
     long videoTimestamp[2]; // Mod by Jeremy
     int safeBufferIndex; // Mod by Jeremy
+    bool enableCbcuiVision; // Mod by Jeremy
 
   public:
     VideoDataReceiver(ARDrone::Controller* pController, const char* szDroneIpAddress);
     ~VideoDataReceiver() throw ();
 
     void copyDataTo(ARDrone::VideoDecoder::Image& resultImage, long& timestamp);
+    void setEnableCbcuiVision(bool enable);
   protected:
     void run();
   };

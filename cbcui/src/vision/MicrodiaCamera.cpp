@@ -155,7 +155,7 @@ void MicrodiaCamera::backgroundLoop()
             while(! (access(EXTERNAL_CAMERA_READY, F_OK) != -1) )
             {
                 // Check if the external camera has been disabled
-                external_camera_in_use = access( EXTERNAL_CAMERA_BUFFER, F_OK ) != -1;
+                external_camera_in_use = access( EXTERNAL_CAMERA_BUFFER, R_OK ) != -1;
                 if(! external_camera_in_use) break;
             }
             

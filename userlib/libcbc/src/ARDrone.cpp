@@ -17,7 +17,7 @@
 #include <commonc++/String.h++>
 #include <commonc++/ScopedLock.h++>
 
-
+#include "ARDrone_c.h"
 
 #include <string>
 #include <sstream>
@@ -812,6 +812,7 @@ namespace ARDrone
     safeBufferIndex = 1;
     videoBuffer[0].height = videoBuffer[0].width = videoBuffer[1].height = videoBuffer[1].width = 0;
     videoTimestamp[0] = videoTimestamp[1] = 0;
+    enableCbcuiVision = false;
   }
 
   VideoDataReceiver::~VideoDataReceiver() throw ()
@@ -857,6 +858,16 @@ namespace ARDrone
             ARDrone::VideoDecoder::decodeImage(myVideoData, videoDataLength, videoBuffer[safeBufferIndex^1]);
             videoTimestamp[safeBufferIndex^1] = (long)(seconds() * 1000);
             safeBufferIndex ^= 1;
+
+            if(enableCbcuiVision)
+            {
+                write_external_camera_data();
+            }
+            else
+            {
+                delete_external_camera_data();
+            }
+
             //ccxx::Thread::sleep(20);
             msleep(20);
 
@@ -899,6 +910,11 @@ namespace ARDrone
       //::printf("%d, %d\n", resultImage.width, resultImage.height);
     }
     */
+  }
+
+  void VideoDataReceiver::setEnableCbcuiVision(bool enable)
+  {
+      enableCbcuiVision = enable;
   }
 
   ////////////////////////////////////////////////////////

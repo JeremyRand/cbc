@@ -30,6 +30,13 @@ float drone_get_y_vel();
 float drone_get_z_vel();
 float drone_get_yaw();
 
+void drone_front_camera();
+void drone_down_camera();
+void enable_drone_vision();
+void disable_drone_vision();
+void write_external_camera_data();
+void delete_external_camera_data();
+
 void drone_move(int enable, float x_tilt, float y_tilt, float yaw_vel, float z_vel);
 void drone_hover();
 
