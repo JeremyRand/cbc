@@ -3,6 +3,9 @@
 #include <QSettings>
 #include "CbobData.h"
 
+// Added by Jeremy; see below
+#include <cstdlib>
+
 
 UserProgram::UserProgram()
 {
@@ -39,6 +42,10 @@ void UserProgram::toggleState()
   else {
     emit consoleOutput(QString("Program Stopped!\n"));
     m_userProgram.terminate();
+
+    // Hack by Jeremy for shell script launched programs
+    system("killall robot.bin");
+
     emit stopped();
   }
 }
