@@ -168,7 +168,7 @@ namespace ARDrone
     Controller();
     ~Controller();
 
-    void connectWithDroneAtAddress(const char* szDroneIpAddress);
+    void connectWithDroneAtAddress(const char* szDroneIpAddress, const char* pairMAC = "");
 
     void takeOff();
     void land();
@@ -259,7 +259,7 @@ namespace ARDrone
     Drone();
     ~Drone();
 
-    bool start();
+    bool start(const char* pairMAC = "");
     void stop();
 
     ARDrone::Controller& controller();

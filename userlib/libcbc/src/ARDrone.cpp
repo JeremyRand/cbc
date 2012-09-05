@@ -123,7 +123,7 @@ namespace ARDrone
 
   }
 
-  bool Drone::start()
+  bool Drone::start(const char* pairMAC)
   {
     try
     {
@@ -132,7 +132,7 @@ namespace ARDrone
       myNavigationDataReceiver = new ARDrone::NavigationDataReceiver(myController,  "192.168.1.1");
 
 
-      myController->connectWithDroneAtAddress("192.168.1.1");
+      myController->connectWithDroneAtAddress("192.168.1.1", pairMAC);
       ccxx::Thread::sleep(200);
 
       myNavigationDataReceiver->start();
@@ -304,7 +304,7 @@ namespace ARDrone
   {
   }
 
-  void Controller::connectWithDroneAtAddress(const char* szDroneIpAddress)
+  void Controller::connectWithDroneAtAddress(const char* szDroneIpAddress, const char* pairMAC)
   {
     if(true == myCommunicationChannel.isConnectedWithDrone())
       return;
@@ -337,8 +337,21 @@ namespace ARDrone
     myCommunicationChannel.sendAT("AT*CONFIG=", ",\"general:navdata_demo\",\"TRUE\"");
     myCommunicationChannel.sendAT("AT*CONFIG=", ",\"general:video_enable\",\"TRUE\"");
     disableAdaptiveVideo();
+
+
     //myCommunicationChannel.sendAT("AT*CONFIG=", ",\"network:owner_mac\",\"00:18:DE:9D:E9:5D\""); //my PC
     //myCommunicationChannel.sendAT("AT*CONFIG=", ",\"network:owner_mac\",\"00:23:CD:5D:92:37\""); //AP
+
+    if(strcmp(pairMAC, "")) // if pairMAC is not an empty string (strcmp returns 0 on match)
+    {
+        char buffer[255];
+        sprintf(buffer, ",\"network:owner_mac\",\"%s\"", pairMAC);
+
+        printf("Pairing with MAC %s...\n", pairMAC);
+
+        myCommunicationChannel.sendAT("AT*CONFIG=", buffer);
+    }
+
     myCommunicationChannel.sendAT("AT*CONFIG=", ",\"pic:ultrasound_freq\",\"8\"");
     myCommunicationChannel.sendAT("AT*FTRIM=", ""); //flat trim
 

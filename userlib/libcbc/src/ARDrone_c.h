@@ -13,6 +13,7 @@ under contract for KISS Institute for Practical Robotics.
 extern "C" {
 #endif
 
+void drone_connect_pair(const char* pairMAC);
 void drone_connect();
 void drone_disconnect();
 

@@ -70,12 +70,12 @@ void monitor_sensors()
 }
 
 // ToDo: return value
-void drone_connect()
+void drone_connect_pair(const char* pairMAC)
 {
 	if(!drone_connected)
 	{
 		myDrone = new Drone();
-		myDrone->start();
+		myDrone->start(pairMAC);
 	
 		watchdog_pid = start_process(watchdog);
 		watchdog_enable = true;
@@ -89,6 +89,11 @@ void drone_connect()
 		
 		drone_connected = true;
 	}
+}
+
+void drone_connect()
+{
+	drone_connect_pair("");
 }
 
 void drone_disconnect()
